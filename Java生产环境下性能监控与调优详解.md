@@ -1,4 +1,6 @@
 # 基于JDK的命令行监控工具
+> QIhong   2019年1月1日
+
 ## JVM的参数类型
 ### 标准参数
 1. -help
@@ -109,6 +111,8 @@ jmap -dump:format=b,file=heap.hprof PID
 * WAITING
 * TIMEMD_WAITING
 * TEEMINATED
+
+![Java线程状态](./pic/thread.png)
 3. 实验：jstack 定位死锁与死循环
 
 # 基于JVisualVM的可视化监控
@@ -393,15 +397,37 @@ CodeCache:JIT编译后的本地代码、JNI使用的C代码
 * 适用于后台处理等交互较弱的场景
 * -XX:UseParallelGC //开启并行收集器，相同于同时开启了-XX:+UseParallelOldGC
 * Server模式下是默认收集器
+* -XX:ParallelGCThreads=n //指定GC线程数
+* 并行收集器是一种自适应收集器，动态内存调整（具体参数略）
 
 ### 并发收集器Concurrent
 * 停顿时间优先，使用web应用程序
 * 停顿时间：垃圾收集器做垃圾回收中断应用的时间 `-XX:MaxGCPauseMillis`指定最大停顿时间
 * 并发：指用户线程和垃圾收集器同时执行（可能是交替运行，区别操作系统的并发）
 * JDK8中有两个并发收集器CMS和G1
-* 开启CMS  -XX:+UseConcMarkSweepGC（老年代） -XX:+UseParNewGC(年轻代)
+
+#### CMS
+* 特点：低停顿、低延迟，是一中老年代收集器
+* 缺点：CPU敏感、会产生浮动垃圾、会产生空间碎片
+* 开启CMS  -XX:+UseConcMarkSweepGC（老年代） -XX:+UseParNewGC(新生代默认使用这个)
+* -XX:ConcGCThreads /并发的线程数
+* -XX:+UseCMSCompactAtFullCollection //开启fullgc时候做内存压缩（减少碎片）
+* -XX:CMSFullGCsBeforeCompaction //结合上一个参数，多少次fullgc之后压缩一次
+* -XX:CMSInitiatingOccupancyFraction //Old区使用多大比例时才触发FullGC
+* -XX:+CMSScavengeBeforeRemark //FullGC之前先做一次YGC
+
+
+#### G1(重点)
 * 开启G1   -XX:+UseG1GC
 * JDK8中已经推荐使用G1收集器
+* Region //G1中把堆区划分成一个一个的Region
+* -XX:G1HeapRegionSize=n //region的大小 （1-32M）
+* SABT:(Snapshot-At-The-Beginning)通过Root Tracing得到，GC开始时候存活对象的快照
+* RSet： 记录了其他Region中的对象引用本Region中对象的关系，属于points-into结构（谁引用了我的对象）
+* G1中的YGC和之前的YGC是一样的，但是在G1中没有了FullGC，多了一个MixedGC。发生MixedGC时实际上是回收所有的Young区和部分Old区(参数控制)。MixedCC过程会发生一个[全局并发标记]`InitiatingHeapOccupancyPercent`该参数表示堆内存占有率达到多大时触发全局并发标记（默认45%）。
+* G1HeapWastePercent //在全局并发标记完成之后就直到有多少空间要被回收，在每次YGC之后和再次Mixed GC之前，会检查垃圾占比是否达到此参数，只要达到了下次才会发生MixedGC
+
+
 ![垃圾收集器搭配](./pic/gc.png)
 
 ### 如何选择垃圾收集器
@@ -410,6 +436,10 @@ CodeCache:JIT编译后的本地代码、JNI使用的C代码
 
 ## 可视化GC日志分析工具
 
+### 在线工具 [http://gceasy.io](http://gceasy.io)
+
+### GCViewer
+
 
 ## Tomcat的GC调优实战
 
@@ -417,7 +447,12 @@ CodeCache:JIT编译后的本地代码、JNI使用的C代码
 
 # 课程总结
 
+# 参考资料
+1. [JAVA8官方文档 https://docs.oracle.com/javase/8/docs/](https://docs.oracle.com/javase/8/docs/)
+2. [Java Platform, Standard Edition HotSpot Virtual Machine Garbage Collection Tuning Guide](https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/index.html)
 
+
+# 上次学到7-5
 
 
 
